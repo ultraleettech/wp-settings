@@ -31,6 +31,7 @@ use Ultraleet\WP\Settings\Components\Page;
         <p class="submit">
             <button class="button-primary save-button" type="submit"><?= __('Save Changes') ?></button>
             <?php wp_nonce_field("save_settings_$currentPageId") ?>
+            <input type="hidden" name="ultraleet_save_settings" value="1">
         </p>
     </form>
 </div>

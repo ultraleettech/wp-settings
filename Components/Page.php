@@ -83,7 +83,7 @@ class Page extends AbstractComponent
     /**
      * @return Section[]
      */
-    protected function getSections()
+    public function getSections()
     {
         if (!isset($this->sections)) {
             $this->sections = [];

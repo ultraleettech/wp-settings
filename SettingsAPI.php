@@ -34,6 +34,8 @@ class SettingsAPI
     {
         $this->prefix = "{$prefix}_settings";
         $this->config = $config;
+
+        add_action('wp_loaded', [$this, 'savePage']);
     }
 
     /**
@@ -48,9 +50,10 @@ class SettingsAPI
      */
     public function getSetting(string $field, string $section, string $page = '')
     {
-        $optionName = $this->getPage($page)->getSection($section)->getOptionName();
+        $page = $this->getPageIndex($page);
+        $optionName = $this->getOptionName($page, $section);
         $option = $this->getOption($optionName);
-        return $option[$field] ?? $this->config[$this->getPageIndex($page)]['sections'][$section]['fields'][$field]['default'];
+        return $option[$field] ?? $this->config[$page]['sections'][$section]['fields'][$field]['default'];
     }
 
     /**
@@ -68,27 +71,6 @@ class SettingsAPI
     }
 
     /**
-     * Resolve the name of an option of a specific settings page section.
-     *
-     * @param string $page
-     * @param string $section
-     * @return string
-     */
-    protected function getOptionName(string $page, string $section): string
-    {
-        if (!isset($this->optionNames[$page])) {
-            $this->optionNames[$page] = [];
-        }
-        if (!isset($this->optionNames[$page][$section])) {
-            $name = $this->prefix;
-            $name .= $page ? "_$page" : '';
-            $name .= "_$section" . '_options';
-            $this->optionNames[$page][$section] = $name;
-        }
-        return $this->optionNames[$page][$section];
-    }
-
-    /**
      * Return the index of the first page in config in case page is not specified.
      *
      * @param string $page
@@ -97,19 +79,6 @@ class SettingsAPI
     protected function getPageIndex(string $page = ''): string
     {
         return $page ?: current(array_keys($this->config));
-    }
-
-    /**
-     * Save settings for a specified section.
-     *
-     * @param string $page
-     * @param string $section
-     * @param array $values
-     */
-    public function saveSettingsSection(string $page, string $section, array $values)
-    {
-        $option = $this->getOption($this->getOptionName($page, $section));
-        update_option($option, $values, false);
     }
 
     /**
@@ -165,5 +134,27 @@ class SettingsAPI
             $this->pages[$pageId] = new Page($pageId, $config, $this->prefix, $this->getRenderer(), $this);
         }
         return $this->pages[$pageId];
+    }
+
+    /**
+     * Save all settings sections when a settings page form is submitted.
+     */
+    public function savePage()
+    {
+        if (! isset($_REQUEST['ultraleet_save_settings'])) {
+            return;
+        }
+        $pageId = $this->getPageIndex($_GET['tab'] ?? '');
+        check_admin_referer("save_settings_$pageId");
+        foreach ($this->getPage($pageId)->getSections() as $sectionId => $section) {
+            $section->saveSettings();
+        }
+        wp_safe_redirect($_SERVER['HTTP_REFERER']);
+        exit;
+    }
+
+    public function getOptionName(string $page, string $section): string
+    {
+        return $this->getPage($page)->getSection($section)->getOptionName();
     }
 }

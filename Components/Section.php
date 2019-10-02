@@ -103,6 +103,28 @@ class Section extends AbstractComponent
     }
 
     /**
+     * Save settings
+     */
+    public function saveSettings()
+    {
+        $oldSettings = $this->getSettings();
+        $optionName = $this->optionName;
+        if (isset($_POST[$optionName])) {
+            $newSettings = $_POST[$optionName];
+            update_option($optionName, $newSettings, false);
+            if (isset($this->config['onSave'])) {
+                $onSave = $this->config['onSave'];
+                is_callable($onSave) ? call_user_func($onSave, $oldSettings, $newSettings, $optionName) : apply_filters(
+                    $onSave,
+                    $oldSettings,
+                    $newSettings,
+                    $optionName
+                );
+            }
+        }
+    }
+
+    /**
      * @return string
      */
     public function getOptionName(): string
@@ -116,13 +138,5 @@ class Section extends AbstractComponent
     public function getId(): string
     {
         return $this->id;
-    }
-
-    /**
-     * @param string $id
-     */
-    public function setId(string $id): void
-    {
-        $this->id = $id;
     }
 }
