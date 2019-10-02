@@ -7,6 +7,10 @@
 use Ultraleet\WP\Settings\Components\Section;
 
 ?>
-<?php foreach ($fieldContent as $content): ?>
-    <?= $content ?>
-<?php endforeach; ?>
+<table class="form-table">
+    <tbody>
+        <?php foreach ($fieldContent as $content): ?>
+            <?= $content ?>
+        <?php endforeach; ?>
+    </tbody>
+</table>

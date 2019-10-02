@@ -39,6 +39,7 @@ class Page extends AbstractComponent
      * @param array $config
      * @param string $prefix
      * @param Renderer $renderer
+     * @param SettingsAPI $api
      */
     public function __construct(string $id, array $config, string $prefix, Renderer $renderer, SettingsAPI $api)
     {
@@ -62,6 +63,7 @@ class Page extends AbstractComponent
             $content[$id] = $section->render();
         }
         return $this->renderer->render('page', [
+            'title' => $this->title,
             'pages' => $this->api->getPages(),
             'currentPageId' => $this->id,
             'sectionContent' => $content,

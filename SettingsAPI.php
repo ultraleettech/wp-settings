@@ -122,7 +122,6 @@ class SettingsAPI
     {
         $renderer = $this->getRenderer();
         return $renderer->render('settings', [
-            'pages' => $this->getPages(),
             'content' => $this->getPage($pageId)->render(),
         ]);
     }
@@ -147,10 +146,11 @@ class SettingsAPI
      */
     public function getPages(): array
     {
+        $pages = [];
         foreach ($this->config as $pageId => $config) {
-            $this->pages[$pageId] ?? $this->getPage($pageId);
+            $pages[$pageId] = $this->pages[$pageId] ?? $this->getPage($pageId);
         }
-        return $this->pages;
+        return $this->pages = $pages;
     }
 
     /**

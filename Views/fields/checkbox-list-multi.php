@@ -7,13 +7,22 @@
  * @var array $options
  */
 
-foreach ($options as $id => $title): ?>
-<div>
-    <input type="checkbox"
-           name="<?= $name ?>>"
-            <?= in_array($id, $value) ? 'checked' : '' ?>
-           value="<?= $id ?>">
-    <?= esc_html($title) ?>
-</div>
-
-<?php endforeach;
+?>
+<tr valign="top">
+    <th scope="row" class="titledesc">
+        <?= esc_html($label) ?>
+    </th>
+    <td class="forminp forminp-checkbox">
+        <?php foreach ($options as $id => $title): ?>
+        <div>
+            <label>
+                <input type="checkbox"
+                       name="<?= $name ?>>"
+                        <?= in_array($id, $value) ? 'checked' : '' ?>
+                       value="<?= $id ?>">
+                <?= esc_html($title) ?>
+            </label>
+        </div>
+        <?php endforeach; ?>
+    </td>
+</tr>

@@ -12,6 +12,11 @@ foreach ($attributes as $attributeName => $attributeValue) {
     $inputAttributes[] = "$attributeName=\"$attributeValue\"";
 }
 ?>
-<label><?= $label ?>
-    <input name="<?= $name ?>" <?= implode(' ', $inputAttributes) ?> value="<?= esc_attr($value) ?>">
-</label>
+<tr valign="top">
+    <th scope="row" class="titledesc">
+        <label for="<?= $attributes['id'] ?>"><?= esc_html($label) ?></label>
+    </th>
+    <td class="forminp forminp-text">
+        <input name="<?= $name ?>" <?= implode(' ', $inputAttributes) ?> value="<?= esc_attr($value) ?>">
+    </td>
+</tr>

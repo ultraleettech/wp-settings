@@ -1,5 +1,6 @@
 <?php
 /**
+ * @var string $title
  * @var Page[] $pages
  * @var string $currentPageId
  * @var array $sectionContent
@@ -20,9 +21,16 @@ use Ultraleet\WP\Settings\Components\Page;
 
             <?php endforeach; ?>
         </nav>
-    </form>
-<?php foreach ($sectionContent as $content): ?>
-    <?= $content ?>
-<?php endforeach; ?>
 
+        <h1 class="screen-reader-text"><?= $title ?>></h1>
+
+        <?php foreach ($sectionContent as $content): ?>
+            <?= $content ?>
+        <?php endforeach; ?>
+
+        <p class="submit">
+            <button class="button-primary save-button" type="submit"><?= __('Save Changes') ?></button>
+            <?php wp_nonce_field("save_settings_$currentPageId") ?>
+        </p>
+    </form>
 </div>

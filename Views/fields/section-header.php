@@ -4,9 +4,15 @@
  * @var string $text
  */
 ?>
-<?php if ($title): ?>
-    <h4><?= $title ?></h4>
-<?php endif; ?>
-<?php if ($text): ?>
-    <?= wpautop($text) ?>
-<?php endif; ?>
+<tr>
+    <td colspan="2" class="section-heading">
+        <?php if ($title): ?>
+            <h2><?= esc_html($title) ?></h2>
+        <?php endif; ?>
+        <?php if ($text): ?>
+            <div>
+                <?= wpautop($text) ?>
+            </div>
+        <?php endif; ?>
+    </td>
+</tr>
