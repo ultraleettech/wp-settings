@@ -88,10 +88,29 @@ class Page extends AbstractComponent
         if (!isset($this->sections)) {
             $this->sections = [];
             foreach ($this->config['sections'] as $id => $config) {
-                $this->sections[$id] = new Section($id, $config, $this->prefix, $this->renderer);
+                if ($this->isSectionEnabled($id)) {
+                    $this->sections[$id] = new Section($id, $config, $this->prefix, $this->renderer);
+                }
             }
         }
         return $this->sections;
+    }
+
+    /**
+     * @param string $section
+     * @return bool
+     */
+    protected function isSectionEnabled(string $section): bool
+    {
+        $value = $this->config['sections'][$section]['enabled'] ?? true;
+        if (is_bool($value)) {
+            return $value;
+        } elseif (is_callable($value)) {
+            return (bool) call_user_func($value);
+        } elseif (is_string($value) && has_filter($value)) {
+            return (bool) apply_filters($value, true);
+        }
+        return (bool) $value;
     }
 
     /**
@@ -103,26 +122,10 @@ class Page extends AbstractComponent
     }
 
     /**
-     * @param mixed $id
-     */
-    public function setId($id): void
-    {
-        $this->id = $id;
-    }
-
-    /**
      * @return mixed
      */
     public function getTitle()
     {
         return $this->title;
-    }
-
-    /**
-     * @param mixed $title
-     */
-    public function setTitle($title): void
-    {
-        $this->title = $title;
     }
 }

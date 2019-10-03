@@ -7,7 +7,7 @@ class Password extends Text
     /**
      * @inheritDoc
      */
-    public function getRenderParams(): array
+    protected function getRenderParams(): array
     {
         $params = parent::getRenderParams();
         $params['attributes']['type'] = 'password';

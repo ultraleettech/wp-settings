@@ -53,7 +53,7 @@ class SettingsAPI
         $page = $this->getPageIndex($page);
         $optionName = $this->getOptionName($page, $section);
         $option = $this->getOption($optionName);
-        return $option[$field] ?? $this->config[$page]['sections'][$section]['fields'][$field]['default'];
+        return $option[$field] ?? $this->getPage($page)->getSection($section)->getField($field)->getDefaultValue();
     }
 
     /**

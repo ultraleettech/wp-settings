@@ -60,33 +60,35 @@ class Section extends AbstractComponent
      */
     protected function getFields()
     {
-        if (empty($this->fields)) {
-            foreach ($this->config['fields'] as $id => $config) {
-                $this->fields[$id] = $this->addField($id, $config);
-            }
+        foreach (array_keys($this->config['fields']) as $id) {
+            $this->getField($id);
         }
         return $this->fields;
     }
 
     /**
+     * Retrieve a settings field instance.
+     *
      * @param string $id
-     * @param array $config
      * @return AbstractField
      */
-    protected function addField(string $id, array $config = [])
+    public function getField(string $id): AbstractField
     {
-        $settings = $this->getSettings();
-        $config['id'] = $id;
-        $config['type'] = $config['type'] ?? 'text';
-        $className = str_replace('_', '', ucwords($config['type'], '_'));
-        $class = str_replace('AbstractField', $className, AbstractField::class);
-        /** @var AbstractField $field */
-        $field = new $class($id, $config, $this->optionName, $this->renderer);
-        if ($field->hasValue()) {
-            $field->setValue($settings[$id] ?? $field->getDefaultValue());
+        if (! isset($this->fields[$id])) {
+            $settings = $this->getSettings();
+            $config = $this->config['fields'][$id];
+            $config['id'] = $id;
+            $config['type'] = $config['type'] ?? 'text';
+            $className = str_replace('_', '', ucwords($config['type'], '_'));
+            $class = str_replace('AbstractField', $className, AbstractField::class);
+            /** @var AbstractField $field */
+            $field = new $class($id, $config, $this->optionName, $this->renderer);
+            if ($field->hasValue()) {
+                $field->setValue($settings[$id] ?? $field->getDefaultValue());
+            }
+            $this->fields[$id] = $field;
         }
-        $this->fields[$id] = $field;
-        return $field;
+        return $this->fields[$id];
     }
 
     /**
@@ -113,9 +115,13 @@ class Section extends AbstractComponent
             $newSettings = $_POST[$optionName];
             update_option($optionName, $newSettings, false);
             if (isset($this->config['onSave'])) {
-                $onSave = $this->config['onSave'];
-                is_callable($onSave) ? call_user_func($onSave, $oldSettings, $newSettings, $optionName) : apply_filters(
-                    $onSave,
+                is_callable($this->config['onSave']) ? call_user_func(
+                    $this->config['onSave'],
+                    $oldSettings,
+                    $newSettings,
+                    $optionName
+                ) : do_action(
+                    $this->config['onSave'],
                     $oldSettings,
                     $newSettings,
                     $optionName

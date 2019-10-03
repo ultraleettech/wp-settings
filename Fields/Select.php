@@ -2,7 +2,7 @@
 
 namespace Ultraleet\WP\Settings\Fields;
 
-class CheckboxListMulti extends AbstractField
+class Select extends AbstractField
 {
     /**
      * Get the template name to load when rendering this field.
@@ -11,15 +11,7 @@ class CheckboxListMulti extends AbstractField
      */
     protected function getTemplateName(): string
     {
-        return 'checkbox-list-multi';
-    }
-
-    /**
-     * @inheritDoc
-     */
-    protected function valueType()
-    {
-        return 'array';
+        return 'select';
     }
 
     /**

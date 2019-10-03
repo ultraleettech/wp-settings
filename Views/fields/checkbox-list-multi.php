@@ -6,7 +6,6 @@
  * @var array $attributes
  * @var array $options
  */
-
 ?>
 <tr valign="top">
     <th scope="row" class="titledesc">

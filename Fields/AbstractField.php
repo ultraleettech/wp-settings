@@ -45,14 +45,35 @@ abstract class AbstractField
     abstract protected function getTemplateName(): string;
 
     /**
-     * Renders the field and returns the HTML string.
+     * Override for fields that have different value types (such as array for multiple choice fields).
      *
      * @return string
      */
-    final public function render(): string
+    protected function valueType()
     {
-        $templateName = $this->getTemplateName();
-        return $this->renderer->render("fields/$templateName", $this->getRenderParams());
+        return 'string';
+    }
+
+    /**
+     * Override for field types that need a different default value than an empty string/array/object.
+     *
+     * @return mixed
+     */
+    protected function default()
+    {
+        $default = null;
+        settype($default, $this->valueType());
+        return $default;
+    }
+
+    /**
+     * Override and return false for valueless fields (such as section headings).
+     *
+     * @return bool
+     */
+    public function hasValue(): bool
+    {
+        return true;
     }
 
     /**
@@ -63,7 +84,7 @@ abstract class AbstractField
      *
      * @return array
      */
-    public function getRenderParams(): array
+    protected function getRenderParams(): array
     {
         $params = [];
         if ($this->hasValue()) {
@@ -79,23 +100,14 @@ abstract class AbstractField
     }
 
     /**
-     * Override for field types that need a different default value than an empty string.
+     * Renders the field and returns the HTML string.
      *
-     * @return mixed
+     * @return string
      */
-    public function default()
+    final public function render(): string
     {
-        return '';
-    }
-
-    /**
-     * Override and return false for valueless fields (such as section headings).
-     *
-     * @return bool
-     */
-    public function hasValue(): bool
-    {
-        return true;
+        $templateName = $this->getTemplateName();
+        return $this->renderer->render("fields/$templateName", $this->getRenderParams());
     }
 
     /**
@@ -115,7 +127,10 @@ abstract class AbstractField
      */
     public function getDefaultValue()
     {
-        return $this->config['default'] ?? $this->default();
+        if (! isset($this->config['default'])) {
+            return $this->default();
+        }
+        return static::filterIfCallbackOrFilter($this->config['default'], $this->valueType());
     }
 
     /**
@@ -159,10 +174,10 @@ abstract class AbstractField
             if (static::isCorrectType($value, $type)) {
                 return $value;
             }
-            $error = "Provided filter did not return the correct type ($type).";
+            $error = "Provided filter '$value' did not return the correct type ($type).";
         }
         if (($error || !static::isCorrectType($value, $type)) && ($strict || !settype($value, $type))) {
-            $error = $error ?: "Provided value is not and cannot be cast to the correct type ($type).";
+            $error = $error ?: "Provided value is not of and cannot be cast to the correct type ($type).";
         }
         if ($error) {
             throw new InvalidTypeException($error);

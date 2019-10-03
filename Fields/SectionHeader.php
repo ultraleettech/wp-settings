@@ -27,7 +27,7 @@ class SectionHeader extends AbstractField
     /**
      * @return array
      */
-    public function getRenderParams(): array
+    protected function getRenderParams(): array
     {
         $params = parent::getRenderParams();
         $params['title'] = $this->config['title'] ?? false;
