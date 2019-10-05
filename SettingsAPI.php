@@ -48,7 +48,7 @@ class SettingsAPI
      *
      * @todo Fetch default value from actual field object.
      */
-    public function getSetting(string $field, string $section, string $page = '')
+    public function getSettingValue(string $field, string $section, string $page = '')
     {
         $page = $this->getPageIndex($page);
         $optionName = $this->getOptionName($page, $section);
