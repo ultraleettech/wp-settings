@@ -12,6 +12,7 @@ use Ultraleet\WP\Settings\Components\Page;
 class SettingsAPI
 {
     protected $prefix;
+    protected $initialConfig;
     protected $config;
     protected $optionNames = [];
     protected $options = [];
@@ -33,9 +34,32 @@ class SettingsAPI
     public function __construct(string $prefix, array $config)
     {
         $this->prefix = "{$prefix}_settings";
-        $this->config = $config;
+        $this->initialConfig = $config;
 
         add_action('wp_loaded', [$this, 'savePage']);
+    }
+
+    /**
+     * Get filtered configuration array.
+     *
+     * @return array
+     */
+    public function getConfig(): array
+    {
+        if (! isset($this->config)) {
+            /**
+             * Make sure initial configuration is available to the following filter hooks.
+             */
+            $this->config = $this->initialConfig;
+
+            /**
+             * Filters the config array so more settings and pages can be added dynamically.
+             *
+             * @param array Configuration array. Initially the configuration passed to settings API class constructor.
+             */
+            $this->config = apply_filters('ultraleet_wp_settings_config', $this->config);
+        }
+        return $this->config;
     }
 
     /**
@@ -78,7 +102,7 @@ class SettingsAPI
      */
     protected function getPageIndex(string $page = ''): string
     {
-        return $page ?: current(array_keys($this->config));
+        return $page ?: current(array_keys($this->getConfig()));
     }
 
     /**
@@ -116,7 +140,7 @@ class SettingsAPI
     public function getPages(): array
     {
         $pages = [];
-        foreach ($this->config as $pageId => $config) {
+        foreach ($this->getConfig() as $pageId => $config) {
             $pages[$pageId] = $this->pages[$pageId] ?? $this->getPage($pageId);
         }
         return $this->pages = $pages;
@@ -130,7 +154,7 @@ class SettingsAPI
     {
         $pageId = $pageId ?: $this->getPageIndex();
         if (!isset($this->pages[$pageId])) {
-            $config = $this->config[$pageId];
+            $config = $this->getConfig()[$pageId];
             $this->pages[$pageId] = new Page($pageId, $config, $this->prefix, $this->getRenderer(), $this);
         }
         return $this->pages[$pageId];

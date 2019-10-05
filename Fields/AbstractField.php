@@ -169,7 +169,7 @@ abstract class AbstractField
                 return $value;
             }
             $error = "Provided callable did not return the correct type ($type).";
-        } elseif (has_filter($value)) {
+        } elseif (is_string($value) && has_filter($value)) {
             $value = apply_filters($value, null);
             if (static::isCorrectType($value, $type)) {
                 return $value;

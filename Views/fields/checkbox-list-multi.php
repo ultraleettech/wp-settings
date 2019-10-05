@@ -16,7 +16,7 @@
         <div>
             <label>
                 <input type="checkbox"
-                       name="<?= $name ?>>"
+                       name="<?= $name ?>[]"
                         <?= in_array($id, $value) ? 'checked' : '' ?>
                        value="<?= $id ?>">
                 <?= esc_html($title) ?>
