@@ -6,17 +6,12 @@
  * @var array $attributes
  */
 
-$inputAttributes = [];
-foreach ($attributes as $attributeName => $attributeValue) {
-    $attributeValue = esc_attr($attributeValue);
-    $inputAttributes[] = "$attributeName=\"$attributeValue\"";
-}
-?>
+use Ultraleet\WP\Settings\Helpers\Template; ?>
 <tr valign="top">
     <th scope="row" class="titledesc">
         <label for="<?= $attributes['id'] ?>"><?= esc_html($label) ?></label>
     </th>
     <td class="forminp forminp-text">
-        <input name="<?= $name ?>" <?= implode(' ', $inputAttributes) ?> value="<?= esc_attr($value) ?>">
+        <input name="<?= $name ?>" <?= Template::attributes($attributes) ?> value="<?= esc_attr($value) ?>">
     </td>
 </tr>

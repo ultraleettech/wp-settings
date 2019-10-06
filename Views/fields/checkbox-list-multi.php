@@ -6,7 +6,8 @@
  * @var array $attributes
  * @var array $options
  */
-?>
+
+use Ultraleet\WP\Settings\Helpers\Template; ?>
 <tr valign="top">
     <th scope="row" class="titledesc">
         <?= esc_html($label) ?>
@@ -17,6 +18,7 @@
             <label>
                 <input type="checkbox"
                        name="<?= $name ?>[]"
+                       <?= Template::attributes($attributes) ?>
                         <?= in_array($id, $value) ? 'checked' : '' ?>
                        value="<?= $id ?>">
                 <?= esc_html($title) ?>

@@ -12,9 +12,13 @@ use Ultraleet\WP\Settings\Components\Page;
 class SettingsAPI
 {
     protected $prefix;
+    protected $assetsPath;
+    protected $styleDependencies = [];
+    protected $scriptDependencies = [];
+    protected $isSettingsPageCallback;
+    protected $jsonSetter;
     protected $initialConfig;
     protected $config;
-    protected $optionNames = [];
     protected $options = [];
 
     /** @var Renderer */
@@ -30,12 +34,34 @@ class SettingsAPI
      *
      * @param string $prefix The identifier to prepend to option names. Usually a plugin name.
      * @param array $config Configuration array for all pages, sections, and individual fields.
+     * @param array $args {
+     *      @type string $assetsPath Url path of the assets file, relative of which included assets on settings pages are located.
+     *      @type array|string $styleDependencies Dependencies all asset styles depend upon.
+     *      @type array|string $scriptDependencies Dependencies all asset scripts depend upon.
+     *      @type string $jsonSetter String format (containing %s for JSON data) for adding config to a settings page.
+     *      @type callable $isSettingsPage Callback for determining whether we are on a settings page.
+     * }
      */
-    public function __construct(string $prefix, array $config)
+    public function __construct(string $prefix, array $config, array $args)
     {
         $this->prefix = "{$prefix}_settings";
         $this->initialConfig = $config;
+        $args = array_merge([
+            'assetsPath' => '',
+            'styleDependencies' => [],
+            'scriptDependencies' => [],
+            'jsonSetter' => "{$prefix}Settings = %s",
+            'isSettingsPage' => '__return_false',
+        ], $args);
+        $this->assetsPath = trailingslashit($args['assetsPath']);
+        $this->styleDependencies = is_string($args['styleDependencies']) ? [$args['styleDependencies']] : $args['styleDependencies'];
+        $this->scriptDependencies = is_string($args['scriptDependencies']) ? [$args['scriptDependencies']] : $args['scriptDependencies'];
+        $this->isSettingsPageCallback = $args['isSettingsPage'];
+        $this->jsonSetter = $args['jsonSetter'];
 
+        if ($this->isSettingsPage()) {
+            add_action('admin_enqueue_scripts', [$this, 'enqueueAdminAssets'], 100);
+        }
         add_action('wp_loaded', [$this, 'savePage']);
     }
 
@@ -63,14 +89,26 @@ class SettingsAPI
     }
 
     /**
+     * Action: admin_enqueue_scripts
+     *
+     * @param string $hook
+     *
+     * @todo Add global settings assets here.
+     */
+    public function enqueueAdminAssets()
+    {
+        foreach ($this->getPages() as $id => $page) {
+            $page->registerAssets();
+        }
+    }
+
+    /**
      * Return the value of a specified setting.
      *
      * @param string $field
      * @param string $section
      * @param string $page
      * @return mixed|string
-     *
-     * @todo Fetch default value from actual field object.
      */
     public function getSettingValue(string $field, string $section, string $page = '')
     {
@@ -180,5 +218,73 @@ class SettingsAPI
     public function getOptionName(string $page, string $section): string
     {
         return $this->getPage($page)->getSection($section)->getOptionName();
+    }
+
+    /**
+     * Determine whether we are currently on the specified settings page.
+     *
+     * Uses settings page callback provided on library construction.
+     *
+     * @param string $pageId
+     * @return bool
+     */
+    public function isCurrentPage(string $pageId)
+    {
+        if ($this->isSettingsPage()) {
+            $currentPageId = $this->getPageIndex($_GET['tab'] ?? '');
+            return $pageId == $currentPageId;
+        }
+        return false;
+    }
+
+    /**
+     * @return bool
+     */
+    public function isSettingsPage(): bool
+    {
+        return call_user_func($this->isSettingsPageCallback);
+    }
+
+    /**
+     * @param string $path
+     * @return string
+     */
+    public function getAssetsPath(string $path = ''): string
+    {
+        return $this->assetsPath . $path;
+    }
+
+    /**
+     * @param string $assetsPath
+     */
+    public function setAssetsPath(string $assetsPath)
+    {
+        $this->assetsPath = $assetsPath;
+    }
+
+    /**
+     * @return array
+     */
+    public function getStyleDependencies(): array
+    {
+        return $this->styleDependencies;
+    }
+
+    /**
+     * Get core asset dependencies for settings pages.
+     *
+     * @return array
+     */
+    public function getScriptDependencies(): array
+    {
+        return $this->scriptDependencies;
+    }
+
+    /**
+     * @return string
+     */
+    public function getJsonSetter()
+    {
+        return $this->jsonSetter;
     }
 }

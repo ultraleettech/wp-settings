@@ -29,6 +29,7 @@ class CheckboxListMulti extends AbstractField
     {
         $params = parent::getRenderParams();
         $params['options'] = self::filterIfCallbackOrFilter($this->config['options'], 'array');
+        unset($params['attributes']['id']);
         return $params;
     }
 }
