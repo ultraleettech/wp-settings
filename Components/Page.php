@@ -11,6 +11,8 @@ use Ultraleet\WP\Settings\Traits\SupportsOptionalCallbacksAndFilters;
  * Class Page
  *
  * Represent a page of settings (divided into sections).
+ *
+ * @todo Refactor: extract asset management into separate class.
  */
 class Page extends AbstractComponent
 {
@@ -56,30 +58,58 @@ class Page extends AbstractComponent
     }
 
     /**
-     * Register configured admin assets for rendering the page.
+     * Register configured page assets as well as specific field assets configured on the page..
      */
-    public function registerAssets()
+    public function registerAllAssets()
     {
-        if (!empty($this->config['assets']) && $this->api->isCurrentPage($this->id)) {
-            $assets = $this->config['assets'];
-            $deps = $this->api->getScriptDependencies();
-            if (! empty($assets['styles'])) {
-                $this->enqueueStyles($assets['styles']);
-            }
-            if (! empty($assets['scripts'])) {
-                $this->enqueueScripts($assets['scripts']);
-            }
-            if (isset($assets['json'])) {
-                $defaults = [
-                    'position' => 'after',
-                ];
-                $config = array_merge($defaults, $assets['json']);
-                if (empty($config['handle'])) {
-                    throw new MissingArgumentException("JSON configuration for page '{$this->id}' is missing a 'handle' argument.");
+        if (!empty($this->config['assets'])) {
+            $this->registerAssets($this->config['assets']);
+        }
+        $this->registerFieldAssets();
+        //echo '<pre>'; print_r(wp_styles()->registered);exit;
+    }
+
+    /**
+     * Register assets required by field types used on the page.
+     */
+    protected function registerFieldAssets()
+    {
+        $config = [];
+        foreach ($this->getSections() as $section) {
+            foreach ($section->getFields() as $field) {
+                $type = $field->getType();
+                if (! array_key_exists($type, $config) && ! empty($field->getAssetsConfig())) {
+                    $config[$type] = $field->getAssetsConfig();
                 }
-                $data = $this->printJsonScript($config['data']);
-                wp_add_inline_script($config['handle'], $data, $config['position']);
             }
+        }
+        foreach ($config as $type => $assets) {
+            if (isset($assets['json'])) {
+                $assets['json']['handle'] = 'ulwp-settings-field';
+                $assets['json']['format'] = "ULWP.settings.addField('$type', %s)";
+            }
+            $this->registerAssets($assets);
+        }
+    }
+
+    /**
+     * Register assets from specified configuration.
+     *
+     * @param array $assets
+     */
+    protected function registerAssets(array $assets)
+    {
+        if (!empty($assets['styles'])) {
+            $this->enqueueStyles($assets['styles']);
+        }
+        if (!empty($assets['scripts'])) {
+            $this->enqueueScripts($assets['scripts']);
+        }
+        if (isset($assets['inline'])) {
+            $this->enqueueInlineScript($assets['inline']);
+        }
+        if (isset($assets['json'])) {
+            $this->enqueueJsonScript($assets['json']);
         }
     }
 
@@ -96,11 +126,10 @@ class Page extends AbstractComponent
         ];
         foreach ($styles as $handle => $config) {
             $config = array_merge($defaultConfig, $config);
-            $dependencies = $this->api->getStyleDependencies() + $config['dependencies'];
             wp_enqueue_style(
                 $handle,
-                $this->api->getAssetsPath($config['path']),
-                $dependencies,
+                $config['path'],
+                $config['dependencies'],
                 WP_DEBUG ? time() : '',
                 $config['media']
             );
@@ -120,11 +149,10 @@ class Page extends AbstractComponent
         ];
         foreach ($scripts as $handle => $config) {
             $config = array_merge($defaultConfig, $config);
-            $dependencies = $this->api->getScriptDependencies() + $config['dependencies'];
             wp_enqueue_script(
                 $handle,
-                $this->api->getAssetsPath($config['path']),
-                $dependencies,
+                $config['path'],
+                $config['dependencies'],
                 WP_DEBUG ? time() : '',
                 $config['inFooter']
             );
@@ -132,14 +160,48 @@ class Page extends AbstractComponent
     }
 
     /**
+     * @param $config
+     */
+    protected function enqueueInlineScript($config): void
+    {
+        $defaults = [
+            'handle' => 'jquery',
+            'script' => '',
+            'position' => 'after',
+        ];
+        $config = array_merge($defaults, $config);
+        $script = 'jQuery(function($){' . $config['script'] . '});';
+        wp_add_inline_script($config['handle'], $script, $config['position']);
+    }
+
+    /**
+     * @param $config
+     */
+    protected function enqueueJsonScript($config): void
+    {
+        $defaults = [
+            'position' => 'after',
+        ];
+        $config = array_merge($defaults, $config);
+        if (empty($config['handle'])) {
+            throw new MissingArgumentException(
+                "JSON configuration for page '{$this->id}' is missing a 'handle' argument."
+            );
+        }
+        $data = $this->printJsonScript($config['format'], $config['data']);
+        wp_add_inline_script($config['handle'], $data, $config['position']);
+    }
+
+    /**
      * Render JSON configuration used by scripts on this page.
      *
+     * @param string $format
      * @param $data
      * @return string
      */
-    protected function printJsonScript($data)
+    protected function printJsonScript(string $format, $data)
     {
-        return sprintf($this->api->getJsonSetter(), $this->filterJsonData($data));
+        return sprintf($format, $this->filterJsonData($data));
     }
 
     /**

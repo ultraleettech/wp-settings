@@ -58,7 +58,7 @@ class Section extends AbstractComponent
     /**
      * @return AbstractField[]
      */
-    protected function getFields()
+    public function getFields()
     {
         foreach (array_keys($this->config['fields']) as $id) {
             $this->getField($id);
@@ -77,7 +77,6 @@ class Section extends AbstractComponent
         if (! isset($this->fields[$id])) {
             $settings = $this->getSettings();
             $config = $this->config['fields'][$id];
-            $config['id'] = $id;
             $config['type'] = $config['type'] ?? 'text';
             $className = str_replace('_', '', ucwords($config['type'], '_'));
             $class = str_replace('AbstractField', $className, AbstractField::class);

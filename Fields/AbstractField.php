@@ -95,12 +95,20 @@ abstract class AbstractField
             $params['label'] = $this->config['label'] ?? str_replace('_', ' ', ucfirst($this->id));
             $params['name'] = $this->name;
             $params['attributes'] = [
-                'id' => $this->config['id'] ?? str_replace('_', '-', $this->id),
+                'id' => $this->config['id'] ?? str_replace('_', '-', "{$this->prefix}-{$this->id}"),
                 'class' => "setting_{$this->config['type']} {$this->prefix}_{$this->id}",
             ];
             $params['value'] = $this->getValue();
         }
         return $params;
+    }
+
+    /**
+     * @return array
+     */
+    public function getAssetsConfig(): array
+    {
+        return [];
     }
 
     /**
@@ -147,5 +155,13 @@ abstract class AbstractField
             throw new NoValueException("$name field does not support values.");
         }
         $this->value = $value;
+    }
+
+    /**
+     * @return string
+     */
+    public function getType(): string
+    {
+        return $this->config['type'];
     }
 }

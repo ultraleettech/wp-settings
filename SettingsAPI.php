@@ -3,6 +3,22 @@
 namespace Ultraleet\WP\Settings;
 
 use Ultraleet\WP\Settings\Components\Page;
+use Ultraleet\WP\Settings\Exceptions\MissingArgumentException;
+
+/**
+ * DEFINE CONSTANTS HERE FOR NOW
+ *
+ * @todo Refactor library structure
+ */
+function defineConstants($file)
+{
+    define('ULTRALEET_WP_SETTINGS_VERSION', '1.0.0');
+    define('ULTRALEET_WP_SETTINGS_ASSETS_VERSION', WP_DEBUG ? ULTRALEET_WP_SETTINGS_VERSION . '-' . time() : ULTRALEET_WP_SETTINGS_VERSION);
+    define('ULTRALEET_WP_SETTINGS_PATH', __DIR__ . DIRECTORY_SEPARATOR);
+    define('ULTRALEET_WP_SETTINGS_ASSETS_PATH', ULTRALEET_WP_SETTINGS_PATH . 'assets' . DIRECTORY_SEPARATOR);
+    define('ULTRALEET_WP_SETTINGS_ASSETS_URL', plugin_dir_url(ULTRALEET_WP_SETTINGS_ASSETS_PATH . 'index.php'));
+}
+
 
 /**
  * Ultraleet Wordpress settings API library main class.
@@ -11,12 +27,13 @@ use Ultraleet\WP\Settings\Components\Page;
  */
 class SettingsAPI
 {
+    protected $pluginBaseFile;
     protected $prefix;
     protected $assetsPath;
     protected $styleDependencies = [];
     protected $scriptDependencies = [];
     protected $isSettingsPageCallback;
-    protected $jsonSetter;
+    protected $jsonFormat;
     protected $initialConfig;
     protected $config;
     protected $options = [];
@@ -35,29 +52,36 @@ class SettingsAPI
      * @param string $prefix The identifier to prepend to option names. Usually a plugin name.
      * @param array $config Configuration array for all pages, sections, and individual fields.
      * @param array $args {
+     *      @type string $pluginBaseFile The full path to the main plugin file.
      *      @type string $assetsPath Url path of the assets file, relative of which included assets on settings pages are located.
      *      @type array|string $styleDependencies Dependencies all asset styles depend upon.
      *      @type array|string $scriptDependencies Dependencies all asset scripts depend upon.
-     *      @type string $jsonSetter String format (containing %s for JSON data) for adding config to a settings page.
+     *      @type string $jsonFormat String format (containing %s for JSON data) for adding config to a settings page.
      *      @type callable $isSettingsPage Callback for determining whether we are on a settings page.
      * }
      */
     public function __construct(string $prefix, array $config, array $args)
     {
+        defineConstants($this->pluginBaseFile);
+
         $this->prefix = "{$prefix}_settings";
         $this->initialConfig = $config;
         $args = array_merge([
             'assetsPath' => '',
             'styleDependencies' => [],
             'scriptDependencies' => [],
-            'jsonSetter' => "{$prefix}Settings = %s",
+            'jsonFormat' => $this->getDefaultJsonFormat(),
             'isSettingsPage' => '__return_false',
         ], $args);
+        if (empty($args['pluginBaseFile'])) {
+            throw new MissingArgumentException("Argument 'pluginBaseFile' is required.");
+        }
+        $this->pluginBaseFile = $args['pluginBaseFile'];
         $this->assetsPath = trailingslashit($args['assetsPath']);
         $this->styleDependencies = is_string($args['styleDependencies']) ? [$args['styleDependencies']] : $args['styleDependencies'];
         $this->scriptDependencies = is_string($args['scriptDependencies']) ? [$args['scriptDependencies']] : $args['scriptDependencies'];
         $this->isSettingsPageCallback = $args['isSettingsPage'];
-        $this->jsonSetter = $args['jsonSetter'];
+        $this->jsonFormat = $args['jsonFormat'];
 
         if ($this->isSettingsPage()) {
             add_action('admin_enqueue_scripts', [$this, 'enqueueAdminAssets'], 100);
@@ -93,12 +117,29 @@ class SettingsAPI
      *
      * @param string $hook
      *
-     * @todo Add global settings assets here.
+     * @todo Add ULWP as a dependency when that library has been extracted.
      */
     public function enqueueAdminAssets()
     {
+        wp_register_script(
+            'ulwp-settings',
+            ULTRALEET_WP_SETTINGS_ASSETS_URL . 'js/settings.js',
+            [],
+            ULTRALEET_WP_SETTINGS_ASSETS_VERSION
+        );
+        wp_enqueue_script('ulwp-settings');
+        wp_register_script(
+            'ulwp-settings-field',
+            ULTRALEET_WP_SETTINGS_ASSETS_URL . 'js/field.js',
+            ['ulwp-settings'],
+            ULTRALEET_WP_SETTINGS_ASSETS_VERSION
+        );
+        wp_enqueue_script('ulwp-settings-field');
+
         foreach ($this->getPages() as $id => $page) {
-            $page->registerAssets();
+            if ($this->isCurrentPage($id)) {
+                $page->registerAllAssets();
+            }
         }
     }
 
@@ -165,7 +206,7 @@ class SettingsAPI
     protected function getRenderer(): Renderer
     {
         if (!isset($this->renderer)) {
-            $this->renderer = new Renderer(__DIR__ . DIRECTORY_SEPARATOR . 'Views');
+            $this->renderer = new Renderer(ULTRALEET_WP_SETTINGS_ASSETS_PATH . 'views' . DIRECTORY_SEPARATOR);
         }
         return $this->renderer;
     }
@@ -193,9 +234,55 @@ class SettingsAPI
         $pageId = $pageId ?: $this->getPageIndex();
         if (!isset($this->pages[$pageId])) {
             $config = $this->getConfig()[$pageId];
+            if (! empty($config['assets'])) {
+                $config['assets'] = $this->filterAssetsConfig($config['assets']);
+            }
             $this->pages[$pageId] = new Page($pageId, $config, $this->prefix, $this->getRenderer(), $this);
         }
         return $this->pages[$pageId];
+    }
+
+    /**
+     * Add plugin config to assets config.
+     *
+     * @param array $assets
+     * @return array
+     */
+    protected function filterAssetsConfig(array $assets)
+    {
+        if (!empty($assets['styles'])) {
+            $assets['styles'] = $this->filterStylesAndScriptsConfig($assets['styles'], $this->getStyleDependencies());
+        }
+        if (!empty($assets['scripts'])) {
+            $assets['scripts'] = $this->filterStylesAndScriptsConfig($assets['scripts'], $this->getStyleDependencies());
+        }
+        if (isset($assets['json'])) {
+            $assets['json']['format'] = $this->jsonFormat;
+        }
+        return $assets;
+    }
+
+    protected function filterStylesAndScriptsConfig(array $assets, array $dependencies): array
+    {
+        foreach ($assets as $handle => $config) {
+            if (empty($assets[$handle]['path'])) {
+                throw new MissingArgumentException("Asset path for '$handle' is required.");
+            }
+            $assets[$handle]['path'] = $this->filterAssetPath($assets[$handle]['path']);
+            if (isset($config['dependencies'])) {
+                $assets[$handle]['dependencies'] = $dependencies + $config['dependencies'];
+            }
+        }
+        return $assets;
+    }
+
+    /**
+     * @param string $path
+     * @return string
+     */
+    protected function filterAssetPath(string $path = ''): string
+    {
+        return $this->assetsPath . $path;
     }
 
     /**
@@ -215,6 +302,11 @@ class SettingsAPI
         exit;
     }
 
+    /**
+     * @param string $page
+     * @param string $section
+     * @return string
+     */
     public function getOptionName(string $page, string $section): string
     {
         return $this->getPage($page)->getSection($section)->getOptionName();
@@ -228,7 +320,7 @@ class SettingsAPI
      * @param string $pageId
      * @return bool
      */
-    public function isCurrentPage(string $pageId)
+    protected function isCurrentPage(string $pageId)
     {
         if ($this->isSettingsPage()) {
             $currentPageId = $this->getPageIndex($_GET['tab'] ?? '');
@@ -246,12 +338,11 @@ class SettingsAPI
     }
 
     /**
-     * @param string $path
      * @return string
      */
-    public function getAssetsPath(string $path = ''): string
+    protected function getDefaultJsonFormat(): string
     {
-        return $this->assetsPath . $path;
+        return "{$this->prefix}Settings = %s";
     }
 
     /**
@@ -283,8 +374,16 @@ class SettingsAPI
     /**
      * @return string
      */
-    public function getJsonSetter()
+    public function getJsonFormat()
     {
-        return $this->jsonSetter;
+        return $this->jsonFormat;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getPluginBaseFile()
+    {
+        return $this->pluginBaseFile;
     }
 }
