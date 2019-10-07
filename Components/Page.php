@@ -66,7 +66,6 @@ class Page extends AbstractComponent
             $this->registerAssets($this->config['assets']);
         }
         $this->registerFieldAssets();
-        //echo '<pre>'; print_r(wp_styles()->registered);exit;
     }
 
     /**

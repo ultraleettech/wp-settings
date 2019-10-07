@@ -19,8 +19,9 @@ use Ultraleet\WP\Settings\Helpers\Template; ?>
                 <input type="checkbox"
                        name="<?= $name ?>[]"
                        <?= Template::attributes($attributes) ?>
-                        <?= in_array($id, $value) ? 'checked' : '' ?>
-                       value="<?= $id ?>">
+                       <?= in_array($id, $value) ? 'checked' : '' ?>
+                       value="<?= $id ?>"
+                >
                 <?= esc_html($title) ?>
             </label>
         </div>
