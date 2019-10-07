@@ -6,27 +6,14 @@ use Ultraleet\WP\Settings\Components\Page;
 use Ultraleet\WP\Settings\Exceptions\MissingArgumentException;
 
 /**
- * DEFINE CONSTANTS HERE FOR NOW
- *
- * @todo Refactor library structure
- */
-function defineConstants($file)
-{
-    define('ULTRALEET_WP_SETTINGS_VERSION', '1.0.0');
-    define('ULTRALEET_WP_SETTINGS_ASSETS_VERSION', WP_DEBUG ? ULTRALEET_WP_SETTINGS_VERSION . '-' . time() : ULTRALEET_WP_SETTINGS_VERSION);
-    define('ULTRALEET_WP_SETTINGS_PATH', __DIR__ . DIRECTORY_SEPARATOR);
-    define('ULTRALEET_WP_SETTINGS_ASSETS_PATH', ULTRALEET_WP_SETTINGS_PATH . 'assets' . DIRECTORY_SEPARATOR);
-    define('ULTRALEET_WP_SETTINGS_ASSETS_URL', plugin_dir_url(ULTRALEET_WP_SETTINGS_ASSETS_PATH . 'index.php'));
-}
-
-
-/**
  * Ultraleet Wordpress settings API library main class.
  *
  * @package ultraleet/wp-settings
  */
-class SettingsAPI
+class Settings
 {
+    const VERSION = '1.0.0';
+
     protected $pluginBaseFile;
     protected $prefix;
     protected $assetsPath;
@@ -62,7 +49,7 @@ class SettingsAPI
      */
     public function __construct(string $prefix, array $config, array $args)
     {
-        defineConstants($this->pluginBaseFile);
+        $this->includes();
 
         $this->prefix = "{$prefix}_settings";
         $this->initialConfig = $config;
@@ -87,6 +74,15 @@ class SettingsAPI
             add_action('admin_enqueue_scripts', [$this, 'enqueueAdminAssets'], 100);
         }
         add_action('wp_loaded', [$this, 'savePage']);
+    }
+
+    /**
+     * Load required files.
+     */
+    protected function includes()
+    {
+        $dir = dirname(__DIR__) . '/includes/';
+        require_once $dir . 'constants.php';
     }
 
     /**

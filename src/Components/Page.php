@@ -3,7 +3,7 @@
 namespace Ultraleet\WP\Settings\Components;
 
 use Ultraleet\WP\Settings\Renderer;
-use Ultraleet\WP\Settings\SettingsAPI;
+use Ultraleet\WP\Settings\Settings;
 use Ultraleet\WP\Settings\Exceptions\MissingArgumentException;
 use Ultraleet\WP\Settings\Traits\SupportsOptionalCallbacksAndFilters;
 
@@ -29,7 +29,7 @@ class Page extends AbstractComponent
     protected $renderer;
 
     /**
-     * @var SettingsAPI
+     * @var Settings
      */
     protected $api;
 
@@ -45,9 +45,9 @@ class Page extends AbstractComponent
      * @param array $config
      * @param string $prefix
      * @param Renderer $renderer
-     * @param SettingsAPI $api
+     * @param Settings $api
      */
-    public function __construct(string $id, array $config, string $prefix, Renderer $renderer, SettingsAPI $api)
+    public function __construct(string $id, array $config, string $prefix, Renderer $renderer, Settings $api)
     {
         $this->id = $id;
         $this->title = $config['title'];
