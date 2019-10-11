@@ -70,10 +70,13 @@ class Settings
         $this->isSettingsPageCallback = $args['isSettingsPage'];
         $this->jsonFormat = $args['jsonFormat'];
 
-        if ($this->isSettingsPage()) {
-            add_action('admin_enqueue_scripts', [$this, 'enqueueAdminAssets'], 100);
+        if (is_admin()) {
+            if ($this->isSettingsPage()) {
+                add_action('admin_enqueue_scripts', [$this, 'enqueueAdminAssets'], 100);
+                add_action('admin_notices', [$this, 'adminNotices']);
+            }
+            add_action('wp_loaded', [$this, 'savePage']);
         }
-        add_action('wp_loaded', [$this, 'savePage']);
     }
 
     /**
@@ -280,6 +283,23 @@ class Settings
     }
 
     /**
+     * Add relevant admin notices.
+     */
+    public function adminNotices()
+    {
+        if (isset($_GET['updated'])) {
+            $notice = __('Settings saved.');
+            echo <<<HTML
+<div class="notice notice-success is-dismissible">
+    <p>
+        <strong>$notice</strong>
+    </p>
+</div>
+HTML;
+        }
+    }
+
+    /**
      * Save all settings sections when a settings page form is submitted.
      */
     public function savePage()
@@ -292,7 +312,7 @@ class Settings
         foreach ($this->getPage($pageId)->getSections() as $sectionId => $section) {
             $section->saveSettings();
         }
-        wp_safe_redirect($_SERVER['HTTP_REFERER']);
+        wp_safe_redirect(add_query_arg(['updated' => 1], $_SERVER['HTTP_REFERER']));
         exit;
     }
 
