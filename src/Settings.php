@@ -12,8 +12,6 @@ use Ultraleet\WP\Settings\Exceptions\MissingArgumentException;
  */
 class Settings
 {
-    const VERSION = '0.1.0';
-
     protected $pluginBaseFile;
     protected $prefix;
     protected $assetsPath;
