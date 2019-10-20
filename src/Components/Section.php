@@ -110,22 +110,20 @@ class Section extends AbstractComponent
     {
         $oldSettings = $this->getSettings();
         $optionName = $this->optionName;
-        if (isset($_POST[$optionName])) {
-            $newSettings = $_POST[$optionName];
-            update_option($optionName, $newSettings, false);
-            if (isset($this->config['onSave'])) {
-                is_callable($this->config['onSave']) ? call_user_func(
-                    $this->config['onSave'],
-                    $oldSettings,
-                    $newSettings,
-                    $optionName
-                ) : do_action(
-                    $this->config['onSave'],
-                    $oldSettings,
-                    $newSettings,
-                    $optionName
-                );
-            }
+        $newSettings = $_POST[$optionName] ?? [];
+        update_option($optionName, $newSettings, false);
+        if (isset($this->config['onSave'])) {
+            is_callable($this->config['onSave']) ? call_user_func(
+                $this->config['onSave'],
+                $oldSettings,
+                $newSettings,
+                $optionName
+            ) : do_action(
+                $this->config['onSave'],
+                $oldSettings,
+                $newSettings,
+                $optionName
+            );
         }
     }
 
