@@ -75,19 +75,31 @@ class Section extends AbstractComponent
     public function getField(string $id): AbstractField
     {
         if (! isset($this->fields[$id])) {
+            $field = $this->getNewFieldInstance($id);
             $settings = $this->getSettings();
-            $config = $this->config['fields'][$id];
-            $config['type'] = $config['type'] ?? 'text';
-            $className = str_replace('_', '', ucwords($config['type'], '_'));
-            $class = str_replace('AbstractField', $className, AbstractField::class);
-            /** @var AbstractField $field */
-            $field = new $class($id, $config, $this->optionName, $this->renderer);
             if ($field->hasValue()) {
                 $field->setValue($settings[$id] ?? $field->getDefaultValue());
             }
             $this->fields[$id] = $field;
         }
         return $this->fields[$id];
+    }
+
+    /**
+     * Create a field instance.
+     *
+     * @param string $id
+     * @return AbstractField
+     */
+    protected function getNewFieldInstance(string $id): AbstractField
+    {
+        $config = $this->config['fields'][$id];
+        $config['type'] = $config['type'] ?? 'text';
+        $className = str_replace('_', '', ucwords($config['type'], '_'));
+        $class = str_replace('AbstractField', $className, AbstractField::class);
+        /** @var AbstractField $field */
+        $field = new $class($id, $config, $this->optionName, $this->renderer);
+        return $field;
     }
 
     /**
@@ -110,7 +122,7 @@ class Section extends AbstractComponent
     {
         $oldSettings = $this->getSettings();
         $optionName = $this->optionName;
-        $newSettings = $_POST[$optionName] ?? [];
+        $newSettings = $this->sanitizeFields($_POST[$optionName] ?? []);
         update_option($optionName, $newSettings, false);
         if (isset($this->config['onSave'])) {
             is_callable($this->config['onSave']) ? call_user_func(
@@ -125,6 +137,25 @@ class Section extends AbstractComponent
                 $optionName
             );
         }
+    }
+
+    /**
+     * Make sure all field values are set and of correct type.
+     *
+     * @param array $data
+     * @return array
+     */
+    protected function sanitizeFields(array $data): array
+    {
+        foreach (array_keys($this->config['fields']) as $id) {
+            $field = $this->getNewFieldInstance($id);
+            if (! $field->hasValue()) {
+                continue;
+            }
+            $field->setValue($data[$id] ?? null);
+            $data[$id] = $field->getValue();
+        }
+        return $data;
     }
 
     /**
