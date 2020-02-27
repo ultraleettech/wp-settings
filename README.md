@@ -8,6 +8,10 @@ TODO
 
 ## Changelog
 
+### 0.1.4 (2020-02-27)
+
+* Fixed: "Settings saved" notice showing on all tabs after each save
+
 ### 0.1.3 (2020-02-25)
 
 * Fixed: External dependency on jquery-timepicker plugin
