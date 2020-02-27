@@ -13,7 +13,7 @@ use Ultraleet\WP\Settings\Components\Page;
     <form method="post" id="mainform" action="" enctype="multipart/form-data">
         <nav class="nav-tab-wrapper woo-nav-tab-wrapper">
             <?php foreach ($pages as $pageId => $page): ?>
-                <a href="<?= add_query_arg(['tab' => $pageId]) ?>"
+                <a href="<?= add_query_arg(['tab' => $pageId], remove_query_arg('updated')) ?>"
                    class="nav-tab<?= $pageId == $currentPageId ? ' nav-tab-active' : '' ?>"><?= esc_html(
                         $page->getTitle()
                     ) ?>
